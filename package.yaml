@@ -1,0 +1,24 @@
+name:                advent2018
+version:             0.1.0.0
+github:              "velveteer/advent2018"
+license:             BSD3
+author:              "Josh Miller"
+maintainer:          "notjoshmiller@gmail.com"
+
+extra-source-files:
+- README.md
+
+default-extensions:
+  - OverloadedStrings
+
+description: Solutions to puzzles from adventofcode.com
+
+dependencies:
+- attoparsec
+- base >= 4.7 && < 5
+- bytestring
+- containers
+- text
+
+library:
+  source-dirs: src
