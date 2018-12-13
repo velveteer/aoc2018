@@ -2,17 +2,20 @@
 
 module Advent where
 
-import Control.Arrow((&&&), (|||))
-import Control.Category ((>>>))
-import Control.Monad (join)
-import Data.Attoparsec.ByteString.Char8
-import Data.Bifunctor (bimap, second)
-import Data.Either (rights)
-import Data.List (nub)
-import Text.Read (read)
-import qualified Data.ByteString.Char8        as B
-import qualified Data.IntSet                  as S
-import qualified Data.Map.Strict              as M
+import           Control.Arrow                      ((&&&), (|||))
+import           Control.Category                   ((>>>))
+import           Control.Monad                      (join)
+import           Data.Attoparsec.ByteString.Char8   (Parser(..), char, decimal, parseOnly, space)
+import           Data.Bifunctor                     (bimap, second)
+import           Data.Either                        (rights)
+import           Data.List                          (nub)
+import           Data.Ix                            (range)
+import           Safe                               (headMay)
+import           Linear.V2                          (V2(..))
+import           Text.Read                          (read)
+import qualified Data.ByteString.Char8        as B  (ByteString, dropWhile, lines, readFile, unpack)
+import qualified Data.IntSet                  as S  (insert, member)
+import qualified Data.HashMap.Strict          as HM (alter, elems, filter, fromListWith, lookup, size)
 
 --- Day 1: Chronal Calibration ---
 
@@ -53,8 +56,8 @@ problem_two_a =
   >>> uncurry (*)
   where
     add = pure . maybe 1 (+ 1)
-    len n = M.elems . M.filter ((==) n)
-    freqs !acc (a:as) = freqs (M.alter add a acc) as
+    len n = HM.elems . HM.filter ((==) n)
+    freqs !acc (a:as) = freqs (HM.alter add a acc) as
     freqs !acc [] = acc
 
 -- Part Two:
@@ -81,7 +84,7 @@ problem_two_b =
 -- A claim like #123 @ 3,2: 5x4 means that claim ID 123 specifies a rectangle 3 inches from the left edge,
 -- 2 inches from the top edge, 5 inches wide, and 4 inches tall.
 -- Part Two: What is the ID of the only claim that doesn't overlap?
-problem_three :: IO (Int, Int)
+problem_three :: IO (Int, Maybe Int)
 problem_three =
   B.readFile "inputs/3"
   >>= (B.lines
@@ -93,22 +96,20 @@ problem_three =
         ||| cDims
         >>> fmap (flip (,) 1))
       >>> concat
-      >>> M.fromListWith (+)))
-  >>> (snd >>> (M.filter (> 1) >>> M.size))
+      >>> HM.fromListWith (+)))
+  >>> (snd >>> (HM.filter (> 1) >>> HM.size))
       &&&
-      ((\(cs, m) -> flip filter cs (cDims >>> (all (\pos -> pos `M.lookup` m == Just 1))))
-      >>> head
-      >>> cId)
+      ((\(cs, m) -> filter (cDims >>> (all (\pos -> HM.lookup pos m == Just 1))) cs)
+      >>> headMay
+      >>> fmap cId)
   >>> pure)
 
 data Claim =
   Claim
-  { cId   :: !Int
-  , cx    :: !Int
-  , cy    :: !Int
-  , cw    :: !Int
-  , ch    :: !Int
-  , cDims :: ![(Int, Int)]
+  { cId     :: !Int
+  , cOrigin :: !(V2 Int)
+  , cSize   :: !(V2 Int)
+  , cDims   :: ![V2 Int]
   } deriving Show
 
 parseClaim :: Parser Claim
@@ -118,15 +119,9 @@ parseClaim = do
   space
   char '@'
   space
-  x <- decimal
-  char ','
-  y <- decimal
+  origin <- V2 <$> decimal <* char ',' <*> decimal
   char ':'
   space
-  w <- decimal
-  char 'x'
-  h <- decimal
-  let dims = (,) <$> xs <*> ys
-      xs   = [ x .. x + w - 1 ]
-      ys   = [ y .. y + h - 1 ]
-  pure $ Claim cid x y w h dims
+  size <- V2 <$> decimal <* char 'x' <*> decimal
+  let dims = range (origin, origin + size - 1)
+  pure $ Claim cid origin size dims
