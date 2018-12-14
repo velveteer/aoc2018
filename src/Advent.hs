@@ -88,14 +88,12 @@ problem_one =
         )
   where
     check _ [] = error "cannot check an empty list"
-    check !acc (a : as) =
-      if S.member a acc then a else check (S.insert a acc) as
+    check !acc (a : as) = if S.member a acc then a else check (S.insert a acc) as
 
 --- Day 2: Inventory Management System ---
 
 problem_two :: IO (Int, String)
-problem_two =
-  B.readFile "inputs/2" >>= (problem_two_a &&& problem_two_b >>> pure)
+problem_two = B.readFile "inputs/2" >>= (problem_two_a &&& problem_two_b >>> pure)
 
 --- Part One ---
 -- Count the number of boxes that have an ID containing exactly two of any letter
@@ -112,8 +110,7 @@ problem_two_a =
     >>> uncurry (*)
   where
     len = (HM.elems .) . HM.filter . (==)
-    freqs !acc (a : as) =
-      freqs (HM.insertWith (const (1 +)) a (1 :: Int) acc) as
+    freqs !acc (a : as) = freqs (HM.insertWith (const (1 +)) a (1 :: Int) acc) as
     freqs !acc [] = acc
 
 --- Part Two ---
@@ -151,10 +148,7 @@ problem_three =
     >>= (B.lines
         >>> fmap (parseOnly parseClaim)
         >>> (rights
-            &&& (fmap
-                    ((show >>> error) ||| cDims >>> fmap
-                      (flip (,) (1 :: Int))
-                    )
+            &&& (fmap ((show >>> error) ||| cDims >>> fmap (flip (,) (1 :: Int)))
                 >>> concat
                 >>> HM.fromListWith (+)
                 )
@@ -227,13 +221,12 @@ problem_four =
         >>> rights
         >>> sort
         >>> checkShifts
-        >>> addRecord mempty
+        >>> toEventMap mempty
         >>> fmap (pairs >>> fmap swap >>> fmap (uncurry minutesAsleep))
         >>> fmap concat
         >>> HM.toList
         >>> (maximumBy (comparing (snd >>> length))
-            >>> second
-                  (headMay . maximumBy (comparing length) . group . sort)
+            >>> second (headMay . maximumBy (comparing length) . group . sort)
             >>> first pure
             >>> uncurry (liftA2 (*))
             )
@@ -252,13 +245,11 @@ checkShifts gs = case (gEvent <$> headMay gs) of
   Just (Begin rid) -> (rid, gs)
   _ -> error "shifts must start with a Begin event"
 
-addRecord :: HM.HashMap Int [GEvent]
-          -> (Int, [GRecord])
-          -> HM.HashMap Int [GEvent]
-addRecord !acc (recId, (a : as)) = case (gEvent a) of
-  Begin rid -> addRecord acc (rid, as)
-  other -> addRecord (HM.insertWith (<>) recId [other] acc) (recId, as)
-addRecord !acc _ = acc
+toEventMap :: HM.HashMap Int [GEvent] -> (Int, [GRecord]) -> HM.HashMap Int [GEvent]
+toEventMap !acc (recId, (a : as)) = case (gEvent a) of
+  Begin rid -> toEventMap acc (rid, as)
+  other -> toEventMap (HM.insertWith (<>) recId [other] acc) (recId, as)
+toEventMap !acc _ = acc
 
 minutesAsleep :: GEvent -> GEvent -> [Int]
 minutesAsleep (Sleep e1) (Wake e2) = minuteRange start end mempty
@@ -299,8 +290,7 @@ parseRecord = do
   pure $ GRecord mTime event
 
 parseSleep :: UTCTime -> Parser GEvent
-parseSleep time =
-  string "falls" <* space <* string "asleep" *> pure (Sleep time)
+parseSleep time = string "falls" <* space <* string "asleep" *> pure (Sleep time)
 
 parseWake :: UTCTime -> Parser GEvent
 parseWake time = string "wakes" <* space <* string "up" *> pure (Wake time)
