@@ -1,21 +1,30 @@
-{-# LANGUAGE BangPatterns  #-}
+{-# LANGUAGE BangPatterns      #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 module Advent where
 
+import           Prelude                            hiding (take)
 import           Control.Arrow                      ((&&&), (|||))
+import           Control.Applicative                ((<|>))
 import           Control.Category                   ((>>>))
 import           Control.Monad                      (join)
-import           Data.Attoparsec.ByteString.Char8   (Parser(..), char, decimal, parseOnly, space)
+import           Data.Attoparsec.ByteString.Char8   (Parser(..), char, decimal, parseOnly, space, string, take)
 import           Data.Bifunctor                     (bimap, second)
 import           Data.Either                        (rights)
-import           Data.List                          (nub)
+import           Data.List                          (group, maximumBy, nub, sort)
+import           Data.List.Split                    (chunksOf)
 import           Data.Ix                            (range)
-import           Safe                               (headMay)
+import           Data.Ord                           (comparing)
+import           Data.Time                          (UTCTime(..), TimeOfDay(..), diffUTCTime, parseTimeM, timeToTimeOfDay)
+import           Data.Time.Locale.Compat            (defaultTimeLocale)
+import           Data.Tuple                         (swap)
+import           GHC.Exts                           (sortWith)
 import           Linear.V2                          (V2(..))
+import           Safe                               (headMay)
 import           Text.Read                          (read)
 import qualified Data.ByteString.Char8        as B  (ByteString, dropWhile, lines, readFile, unpack)
 import qualified Data.IntSet                  as S  (insert, member)
-import qualified Data.HashMap.Strict          as HM (alter, elems, filter, fromListWith, lookup, size)
+import qualified Data.HashMap.Strict          as HM (HashMap, alter, elems, filter, fromListWith, insertWith, lookup, size, toList)
 
 --- Day 1: Chronal Calibration ---
 
@@ -99,7 +108,14 @@ problem_three =
       >>> HM.fromListWith (+)))
   >>> (snd >>> (HM.filter (> 1) >>> HM.size))
       &&&
-      ((\(cs, m) -> filter (cDims >>> (all (\pos -> HM.lookup pos m == Just 1))) cs)
+      (uncurry
+        (flip
+          (filter
+          . (cDims >>>)
+          . all
+          . flip flip (Just 1)
+          . ((==) .)
+          . flip HM.lookup))
       >>> headMay
       >>> fmap cId)
   >>> pure)
@@ -125,3 +141,106 @@ parseClaim = do
   size <- V2 <$> decimal <* char 'x' <*> decimal
   let dims = range (origin, origin + size - 1)
   pure $ Claim cid origin size dims
+
+--- Day 4: Repose Record ---
+
+-- Part 1: Find the guard that has the most minutes asleep.
+-- What minute does that guard spend asleep the most?
+-- For example, consider the following records, which have already been organized into chronological order:
+
+-- [1518-11-01 00:00] Guard #10 begins shift
+-- [1518-11-01 00:05] falls asleep
+-- [1518-11-01 00:25] wakes up
+-- [1518-11-01 00:30] falls asleep
+-- [1518-11-01 00:55] wakes up
+-- [1518-11-01 23:58] Guard #99 begins shift
+-- [1518-11-02 00:40] falls asleep
+-- [1518-11-02 00:50] wakes up
+
+problem_four :: IO Int
+problem_four =
+  B.readFile "inputs/4"
+  >>= (B.lines
+  >>> fmap (parseOnly parseRecord)
+  >>> rights
+  >>> sort
+  >>> addRecord mempty 0
+  >>> fmap (pairs >>> fmap swap >>> fmap (uncurry minutesAsleep))
+  >>> HM.toList
+  >>> fmap (second concat)
+  >>> maximumBy (comparing (snd >>> length))
+  >>> second (head . maximumBy (comparing length) . group . sort)
+  >>> uncurry (*)
+  >>> pure)
+
+addRecord
+  :: HM.HashMap Int [GEvent]
+  -> Int
+  -> [GRecord]
+  -> HM.HashMap Int [GEvent]
+addRecord !acc recId (a:as) = case (gEvent a) of
+  Begin rid -> addRecord acc rid as
+  other -> addRecord (HM.insertWith (<>) recId [other] acc) recId as
+addRecord !acc _ _ = acc
+
+minutesAsleep :: GEvent -> GEvent -> [Int]
+minutesAsleep (Sleep e1) (Wake e2) = minuteRange start end mempty
+  where start  = toTime e1
+        end    = toTime e2 - 1
+        toTime = utctDayTime >>> timeToTimeOfDay >>> todMin
+minutesAsleep _ _ = error "bad pattern"
+
+minuteRange :: Int -> Int -> [Int] -> [Int]
+minuteRange cur end acc | cur > 59 = minuteRange 0 end acc
+                        | cur == end = cur : acc
+                        | otherwise = minuteRange (cur + 1) end (cur : acc)
+
+pairs :: [a] -> [(a, a)]
+pairs = fmap (\[a, b] -> (a, b)) . chunksOf 2
+
+data GEvent =
+  Begin   !Int
+  | Wake  !UTCTime
+  | Sleep !UTCTime
+    deriving (Eq, Ord, Show)
+
+data GRecord =
+  GRecord
+  { gTime  :: !UTCTime
+  , gEvent :: !GEvent
+  } deriving (Eq, Ord, Show)
+
+parseRecord :: Parser GRecord
+parseRecord = do
+  char '['
+  tStr  <- take 16
+  mTime <- parseTimeM
+           True
+           defaultTimeLocale
+           "%Y-%m-%d %H:%M"
+           $ B.unpack tStr
+  char ']'
+  space
+  event <- parseSleep mTime <|> parseWake mTime <|> parseBegin
+  pure $ GRecord mTime event
+
+parseSleep :: UTCTime -> Parser GEvent
+parseSleep time =
+  string "falls"
+  <* space <* string "asleep"
+  *> pure (Sleep time)
+
+parseWake :: UTCTime -> Parser GEvent
+parseWake time =
+  string "wakes"
+  <* space <* string "up"
+  *> pure (Wake time)
+
+parseBegin :: Parser GEvent
+parseBegin =
+  Begin
+  <$> (string "Guard"
+    <* space <* char '#'
+    *> decimal
+    <* space <* string "begins"
+    <* space <* string "shift")
