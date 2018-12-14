@@ -207,7 +207,8 @@ problem_four =
         >>> fmap (parseOnly parseRecord)
         >>> rights
         >>> sort
-        >>> addRecord mempty 0
+        >>> checkShifts
+        >>> addRecord mempty
         >>> fmap (pairs >>> fmap swap >>> fmap (uncurry minutesAsleep))
         >>> HM.toList
         >>> fmap (second concat)
@@ -216,22 +217,25 @@ problem_four =
         >>> uncurry (*)
         >>> pure
         )
+checkShifts :: [GRecord] -> (Int, [GRecord])
+checkShifts gs = case (gEvent <$> headMay gs) of
+  Just (Begin rid) -> (rid, gs)
+  _ -> error "shifts must start with a Begin event"
 
 addRecord :: HM.HashMap Int [GEvent]
-          -> Int
-          -> [GRecord]
+          -> (Int, [GRecord])
           -> HM.HashMap Int [GEvent]
-addRecord !acc recId (a : as) = case (gEvent a) of
-  Begin rid -> addRecord acc rid as
-  other -> addRecord (HM.insertWith (<>) recId [other] acc) recId as
-addRecord !acc _ _ = acc
+addRecord !acc (recId, (a : as)) = case (gEvent a) of
+  Begin rid -> addRecord acc (rid, as)
+  other -> addRecord (HM.insertWith (<>) recId [other] acc) (recId, as)
+addRecord !acc _ = acc
 
 minutesAsleep :: GEvent -> GEvent -> [Int]
 minutesAsleep (Sleep e1) (Wake e2) = minuteRange start end mempty
   where
-    start = toTime e1
-    end = toTime e2 - 1
-    toTime = utctDayTime >>> timeToTimeOfDay >>> todMin
+    start = min e1
+    end = min e2 - 1
+    min = utctDayTime >>> timeToTimeOfDay >>> todMin
 minutesAsleep _ _ = error "bad pattern"
 
 minuteRange :: Int -> Int -> [Int] -> [Int]
