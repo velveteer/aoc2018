@@ -222,8 +222,7 @@ problem_four =
         >>> sort
         >>> checkShifts
         >>> toEventMap mempty
-        >>> fmap (pairs >>> fmap swap >>> fmap (uncurry minutesAsleep))
-        >>> fmap concat
+        >>> fmap (pairs >>> fmap (swap >>> (uncurry minutesAsleep)) >>> concat)
         >>> HM.toList
         >>> (maximumBy (comparing (snd >>> length))
             >>> second (headMay . maximumBy (comparing length) . group . sort)
@@ -232,10 +231,10 @@ problem_four =
             )
         &&& (fmap (second (maximumBy (comparing length) . group . sort)))
         >>> second
-              ((maximumBy (comparing (snd >>> length)))
-              >>> (second headMay)
-              >>> (first pure)
-              >>> (uncurry (liftA2 (*)))
+              (maximumBy (comparing (snd >>> length))
+              >>> second headMay
+              >>> first pure
+              >>> uncurry (liftA2 (*))
               )
         >>> pure
         )
