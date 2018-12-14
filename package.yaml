@@ -13,6 +13,10 @@ default-extensions:
 
 description: Solutions to puzzles from adventofcode.com
 
+ghc-options:
+  -Wall
+  -Werror
+
 dependencies:
 - attoparsec
 - base >= 4.7 && < 5
