@@ -3,28 +3,67 @@
 
 module Advent where
 
-import           Prelude                            hiding (take)
-import           Control.Arrow                      ((&&&), (|||))
-import           Control.Applicative                ((<|>))
-import           Control.Category                   ((>>>))
-import           Control.Monad                      (join)
-import           Data.Attoparsec.ByteString.Char8   (Parser(..), char, decimal, parseOnly, space, string, take)
-import           Data.Bifunctor                     (bimap, second)
-import           Data.Either                        (rights)
-import           Data.List                          (group, maximumBy, nub, sort)
-import           Data.List.Split                    (chunksOf)
-import           Data.Ix                            (range)
-import           Data.Ord                           (comparing)
-import           Data.Time                          (UTCTime(..), TimeOfDay(..), diffUTCTime, parseTimeM, timeToTimeOfDay)
-import           Data.Time.Locale.Compat            (defaultTimeLocale)
-import           Data.Tuple                         (swap)
-import           GHC.Exts                           (sortWith)
-import           Linear.V2                          (V2(..))
-import           Safe                               (headMay)
-import           Text.Read                          (read)
-import qualified Data.ByteString.Char8        as B  (ByteString, dropWhile, lines, readFile, unpack)
-import qualified Data.IntSet                  as S  (insert, member)
-import qualified Data.HashMap.Strict          as HM (HashMap, alter, elems, filter, fromListWith, insertWith, lookup, size, toList)
+import           Prelude                      hiding ( take )
+import           Control.Arrow                       ( (&&&)
+                                                     , (|||)
+                                                     )
+import           Control.Applicative                 ( (<|>) )
+import           Control.Category                    ( (>>>) )
+import           Control.Monad                       ( join )
+import           Data.Attoparsec.ByteString.Char8    ( Parser(..)
+                                                     , char
+                                                     , decimal
+                                                     , parseOnly
+                                                     , space
+                                                     , string
+                                                     , take
+                                                     )
+import           Data.Bifunctor                      ( bimap
+                                                     , second
+                                                     )
+import           Data.Either                         ( rights )
+import           Data.List                           ( group
+                                                     , maximumBy
+                                                     , nub
+                                                     , sort
+                                                     )
+import           Data.List.Split                     ( chunksOf )
+import           Data.Ix                             ( range )
+import           Data.Ord                            ( comparing )
+import           Data.Time                           ( UTCTime(..)
+                                                     , TimeOfDay(..)
+                                                     , diffUTCTime
+                                                     , parseTimeM
+                                                     , timeToTimeOfDay
+                                                     )
+import           Data.Time.Locale.Compat             ( defaultTimeLocale )
+import           Data.Tuple                          ( swap )
+import           GHC.Exts                            ( sortWith )
+import           Linear.V2                           ( V2(..) )
+import           Safe                                ( headMay )
+import           Text.Read                           ( read )
+import qualified Data.ByteString.Char8              as B
+                                                     ( ByteString
+                                                     , dropWhile
+                                                     , lines
+                                                     , readFile
+                                                     , unpack
+                                                     )
+import qualified Data.IntSet                        as S
+                                                     ( insert
+                                                     , member
+                                                     )
+import qualified Data.HashMap.Strict                as HM
+                                                     ( HashMap
+                                                     , alter
+                                                     , elems
+                                                     , filter
+                                                     , fromListWith
+                                                     , insertWith
+                                                     , lookup
+                                                     , size
+                                                     , toList
+                                                     )
 
 --- Day 1: Chronal Calibration ---
 
@@ -37,20 +76,21 @@ import qualified Data.HashMap.Strict          as HM (HashMap, alter, elems, filt
 problem_one :: IO (Int, Int)
 problem_one =
   B.readFile "inputs/1"
-  >>= (B.lines
-  >>> fmap (read . B.unpack . B.dropWhile (== '+'))
-  >>> sum &&& (check mempty . scanl (+) 0 . cycle)
-  >>> pure)
+    >>= (B.lines
+        >>> fmap (read . B.unpack . B.dropWhile (== '+'))
+        >>> sum
+        &&& (check mempty . scanl (+) 0 . cycle)
+        >>> pure
+        )
   where
-    check !acc (a:as) =
+    check !acc (a : as) =
       if S.member a acc then a else check (S.insert a acc) as
 
 --- Day 2: Inventory Management System ---
 
 problem_two :: IO (Int, String)
 problem_two =
-  B.readFile "inputs/2"
-  >>= (problem_two_a &&& problem_two_b >>> pure)
+  B.readFile "inputs/2" >>= (problem_two_a &&& problem_two_b >>> pure)
 
 -- Part One:
 -- Count the number of boxes that have an ID containing exactly two of any letter
@@ -59,14 +99,15 @@ problem_two =
 problem_two_a :: B.ByteString -> Int
 problem_two_a =
   B.lines
-  >>> fmap (freqs mempty . B.unpack)
-  >>> fmap (len 2) &&& fmap (len 3)
-  >>> join bimap (length . concat . fmap nub)
-  >>> uncurry (*)
+    >>> fmap (freqs mempty . B.unpack)
+    >>> fmap (len 2)
+    &&& fmap (len 3)
+    >>> join bimap (length . concat . fmap nub)
+    >>> uncurry (*)
   where
     add = pure . maybe 1 (+ 1)
     len n = HM.elems . HM.filter ((==) n)
-    freqs !acc (a:as) = freqs (HM.alter add a acc) as
+    freqs !acc (a : as) = freqs (HM.alter add a acc) as
     freqs !acc [] = acc
 
 -- Part Two:
@@ -75,16 +116,17 @@ problem_two_a =
 problem_two_b :: B.ByteString -> String
 problem_two_b =
   B.lines
-  >>> fmap B.unpack
-  >>> check
-  >>> filter (\(bid, common) -> length bid == (length common + 1))
-  >>> head
-  >>> snd
+    >>> fmap B.unpack
+    >>> check
+    >>> filter (\(bid, common) -> length bid == (length common + 1))
+    >>> head
+    >>> snd
   where
     check ids = diffId <$> ids <*> ids
-    diffId bid bid' = (bid, common) where
-      common = concat $ zipWith pick bid bid'
-      pick a b = if a == b then pure a else mempty
+    diffId bid bid' = (bid, common)
+      where
+        common = concat $ zipWith pick bid bid'
+        pick a b = if a == b then pure a else mempty
 
 --- Day 3: No Matter How You Slice It ---
 
@@ -96,29 +138,30 @@ problem_two_b =
 problem_three :: IO (Int, Maybe Int)
 problem_three =
   B.readFile "inputs/3"
-  >>= (B.lines
-  >>> fmap (parseOnly parseClaim)
-  >>> (rights
-      &&&
-      (fmap
-      ((show >>> error)
-        ||| cDims
-        >>> fmap (flip (,) 1))
-      >>> concat
-      >>> HM.fromListWith (+)))
-  >>> (snd >>> (HM.filter (> 1) >>> HM.size))
-      &&&
-      (uncurry
-        (flip
-          (filter
-          . (cDims >>>)
-          . all
-          . flip flip (Just 1)
-          . ((==) .)
-          . flip HM.lookup))
-      >>> headMay
-      >>> fmap cId)
-  >>> pure)
+    >>= (B.lines
+        >>> fmap (parseOnly parseClaim)
+        >>> (rights
+            &&& (fmap ((show >>> error) ||| cDims >>> fmap (flip (,) 1))
+                >>> concat
+                >>> HM.fromListWith (+)
+                )
+            )
+        >>> (snd >>> (HM.filter (> 1) >>> HM.size))
+        &&& (uncurry
+                (flip
+                  (filter
+                  . (cDims >>>)
+                  . all
+                  . flip flip (Just 1)
+                  . ((==) .)
+                  . flip HM.lookup
+                  )
+                )
+            >>> headMay
+            >>> fmap cId
+            )
+        >>> pure
+        )
 
 data Claim =
   Claim
@@ -160,34 +203,35 @@ parseClaim = do
 problem_four :: IO Int
 problem_four =
   B.readFile "inputs/4"
-  >>= (B.lines
-  >>> fmap (parseOnly parseRecord)
-  >>> rights
-  >>> sort
-  >>> addRecord mempty 0
-  >>> fmap (pairs >>> fmap swap >>> fmap (uncurry minutesAsleep))
-  >>> HM.toList
-  >>> fmap (second concat)
-  >>> maximumBy (comparing (snd >>> length))
-  >>> second (head . maximumBy (comparing length) . group . sort)
-  >>> uncurry (*)
-  >>> pure)
+    >>= (B.lines
+        >>> fmap (parseOnly parseRecord)
+        >>> rights
+        >>> sort
+        >>> addRecord mempty 0
+        >>> fmap (pairs >>> fmap swap >>> fmap (uncurry minutesAsleep))
+        >>> HM.toList
+        >>> fmap (second concat)
+        >>> maximumBy (comparing (snd >>> length))
+        >>> second (head . maximumBy (comparing length) . group . sort)
+        >>> uncurry (*)
+        >>> pure
+        )
 
-addRecord
-  :: HM.HashMap Int [GEvent]
-  -> Int
-  -> [GRecord]
-  -> HM.HashMap Int [GEvent]
-addRecord !acc recId (a:as) = case (gEvent a) of
+addRecord :: HM.HashMap Int [GEvent]
+          -> Int
+          -> [GRecord]
+          -> HM.HashMap Int [GEvent]
+addRecord !acc recId (a : as) = case (gEvent a) of
   Begin rid -> addRecord acc rid as
   other -> addRecord (HM.insertWith (<>) recId [other] acc) recId as
 addRecord !acc _ _ = acc
 
 minutesAsleep :: GEvent -> GEvent -> [Int]
 minutesAsleep (Sleep e1) (Wake e2) = minuteRange start end mempty
-  where start  = toTime e1
-        end    = toTime e2 - 1
-        toTime = utctDayTime >>> timeToTimeOfDay >>> todMin
+  where
+    start = toTime e1
+    end = toTime e2 - 1
+    toTime = utctDayTime >>> timeToTimeOfDay >>> todMin
 minutesAsleep _ _ = error "bad pattern"
 
 minuteRange :: Int -> Int -> [Int] -> [Int]
@@ -213,12 +257,8 @@ data GRecord =
 parseRecord :: Parser GRecord
 parseRecord = do
   char '['
-  tStr  <- take 16
-  mTime <- parseTimeM
-           True
-           defaultTimeLocale
-           "%Y-%m-%d %H:%M"
-           $ B.unpack tStr
+  tStr <- take 16
+  mTime <- parseTimeM True defaultTimeLocale "%Y-%m-%d %H:%M" $ B.unpack tStr
   char ']'
   space
   event <- parseSleep mTime <|> parseWake mTime <|> parseBegin
@@ -226,21 +266,20 @@ parseRecord = do
 
 parseSleep :: UTCTime -> Parser GEvent
 parseSleep time =
-  string "falls"
-  <* space <* string "asleep"
-  *> pure (Sleep time)
+  string "falls" <* space <* string "asleep" *> pure (Sleep time)
 
 parseWake :: UTCTime -> Parser GEvent
-parseWake time =
-  string "wakes"
-  <* space <* string "up"
-  *> pure (Wake time)
+parseWake time = string "wakes" <* space <* string "up" *> pure (Wake time)
 
 parseBegin :: Parser GEvent
 parseBegin =
   Begin
-  <$> (string "Guard"
-    <* space <* char '#'
-    *> decimal
-    <* space <* string "begins"
-    <* space <* string "shift")
+    <$> (string "Guard"
+        <* space
+        <* char '#'
+        *> decimal
+        <* space
+        <* string "begins"
+        <* space
+        <* string "shift"
+        )
