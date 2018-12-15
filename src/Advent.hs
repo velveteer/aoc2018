@@ -26,6 +26,7 @@ import           Data.Bifunctor                      ( bimap
                                                      , first
                                                      , second
                                                      )
+import           Data.Char                           ( toLower )
 import           Data.Either                         ( rights )
 import           Data.List                           ( group
                                                      , maximumBy
@@ -65,6 +66,11 @@ import qualified Data.HashMap.Strict                as HM
                                                      , lookup
                                                      , size
                                                      , toList
+                                                     )
+import qualified Data.Text                          as T
+                                                     ( pack
+                                                     , strip
+                                                     , unpack
                                                      )
 
 --- Day 1: Chronal Calibration ---
@@ -306,3 +312,38 @@ parseBegin =
         <* space
         <* string "shift"
         )
+
+--- Day 5: Alchemical Reduction ---
+
+-- The polymer is formed by smaller units which, when triggered, react with each other such that
+-- two adjacent units of the same type and opposite polarity are destroyed.
+-- Units' types are represented by letters; units' polarity is represented by capitalization.
+-- For instance, r and R are units with the same type but opposite polarity, whereas r and s are entirely different types and do not react.
+
+-- For example:
+
+-- In aA, a and A react, leaving nothing behind.
+-- In abBA, bB destroys itself, leaving aA. As above, this then destroys itself, leaving nothing.
+-- In abAB, no two adjacent units are of the same type, and so nothing happens.
+-- In aabAAB, even though aa and AA are of the same type, their polarities match, and so nothing happens.
+
+--- Part One ---
+-- How many units remain after fully reacting the polymer you scanned?
+-- TODO: Speed this up somehow
+
+problem_five :: IO Int
+problem_five =
+  B.readFile "inputs/5"
+    >>= (B.unpack >>> T.pack >>> T.strip >>> T.unpack >>> reactFully >>> length >>> pure)
+
+canReact :: Char -> Char -> Bool
+canReact a b = a /= b && toLower a == toLower b
+
+reactOnce :: String -> String
+reactOnce (a : b : rest) | canReact a b = reactOnce rest
+                         | otherwise = a : reactOnce (b : rest)
+reactOnce cs = cs
+
+reactFully :: String -> String
+reactFully poly = if reacted == poly then poly else reactFully reacted
+  where reacted = reactOnce poly
