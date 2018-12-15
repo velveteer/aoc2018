@@ -162,12 +162,12 @@ problem_three =
         >>> (snd >>> (HM.filter (> 1) >>> HM.size))
         &&& (uncurry
                 (flip
-                  (filter
-                  . (cDims >>>)
-                  . all
-                  . flip flip (Just 1)
-                  . ((==) .)
-                  . flip HM.lookup
+                  (flip HM.lookup
+                  >>> ((==) .)
+                  >>> flip flip (Just 1)
+                  >>> all
+                  >>> (cDims >>>)
+                  >>> filter
                   )
                 )
             >>> headMay
