@@ -329,12 +329,18 @@ parseBegin =
 
 --- Part One ---
 -- How many units remain after fully reacting the polymer you scanned?
--- TODO: Speed this up somehow
 
-problem_five :: IO Int
+problem_five :: IO (Int, Int)
 problem_five =
   B.readFile "inputs/5"
-    >>= (B.unpack >>> T.pack >>> T.strip >>> T.unpack >>> reactFully >>> length >>> pure)
+    >>= (B.unpack
+        >>> T.pack
+        >>> T.strip
+        >>> T.unpack
+        >>> (reactFully >>> length)
+        &&& (withoutUnits >>> fmap reactFully >>> fmap length >>> sort >>> head)
+        >>> pure
+        )
 
 canReact :: Char -> Char -> Bool
 canReact a b = a /= b && toLower a == toLower b
@@ -347,3 +353,9 @@ reactOnce cs = cs
 reactFully :: String -> String
 reactFully poly = if reacted == poly then poly else reactFully reacted
   where reacted = reactOnce poly
+
+alphas :: String
+alphas = range ('a', 'z')
+
+withoutUnits :: String -> [String]
+withoutUnits poly = fmap (\c -> filter (\d -> toLower d /= c) poly) alphas

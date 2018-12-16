@@ -1,6 +1,6 @@
-name:                advent2018
+name:                advent
 version:             0.1.0.0
-github:              "velveteer/advent2018"
+github:              "velveteer/aoc2018"
 license:             BSD3
 author:              "Josh Miller"
 maintainer:          "notjoshmiller@gmail.com"
@@ -15,7 +15,7 @@ description: Solutions to puzzles from adventofcode.com
 
 ghc-options:
   -Wall
-  -Werror
+  # -Werror
 
 dependencies:
 - attoparsec
@@ -32,3 +32,13 @@ dependencies:
 
 library:
   source-dirs: src
+
+executable:
+  main: Main.hs
+  ghc-options:
+    -O3
+    -threaded
+  source-dirs: app
+  dependencies:
+    - advent
+
