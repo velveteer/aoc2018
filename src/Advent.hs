@@ -338,21 +338,21 @@ problem_five =
         >>> T.strip
         >>> T.unpack
         >>> (reactFully >>> length)
-        &&& (withoutUnits >>> fmap reactFully >>> fmap length >>> sort >>> head)
+        &&& (withoutUnits >>> fmap (reactFully >>> length) >>> sort >>> head)
         >>> pure
         )
 
 canReact :: Char -> Char -> Bool
 canReact a b = a /= b && toLower a == toLower b
 
-reactOnce :: String -> String
-reactOnce (a : b : rest) | canReact a b = reactOnce rest
-                         | otherwise = a : reactOnce (b : rest)
-reactOnce cs = cs
+cons :: Char -> String -> String
+cons x (y:xs)
+  | canReact x y = xs
+  | otherwise    = x:y:xs
+cons x []        = [x]
 
 reactFully :: String -> String
-reactFully poly = if reacted == poly then poly else reactFully reacted
-  where reacted = reactOnce poly
+reactFully = foldr cons mempty
 
 alphas :: String
 alphas = range ('a', 'z')
