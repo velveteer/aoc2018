@@ -31,10 +31,10 @@ import           Data.List.Split                     ( chunksOf )
 import           Data.Ord                            ( comparing )
 import           Data.Time                           ( UTCTime(..)
                                                      , TimeOfDay(..)
+                                                     , defaultTimeLocale
                                                      , parseTimeM
                                                      , timeToTimeOfDay
                                                      )
-import           Data.Time.Locale.Compat             ( defaultTimeLocale )
 import           Data.Tuple                          ( swap )
 import           Safe                                ( headMay )
 import qualified Data.ByteString.Char8              as B

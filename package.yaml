@@ -27,7 +27,6 @@ dependencies:
 - split
 - text
 - time
-- time-locale-compat
 - unordered-containers
 
 library:
