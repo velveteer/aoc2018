@@ -22,6 +22,7 @@ import           Data.Bifunctor                      ( first
                                                      , second
                                                      )
 import           Data.Either                         ( rights )
+import           Data.Ix                             ( range )
 import           Data.List                           ( group
                                                      , maximumBy
                                                      , sort
@@ -98,17 +99,12 @@ toEventMap !acc (recId, (a : as)) = case (gEvent a) of
 toEventMap !acc _ = acc
 
 minutesAsleep :: GEvent -> GEvent -> [Int]
-minutesAsleep (Sleep e1) (Wake e2) = minuteRange start end mempty
+minutesAsleep (Sleep e1) (Wake e2) = range (start, end)
   where
     start = minute e1
     end = minute e2 - 1
     minute = utctDayTime >>> timeToTimeOfDay >>> todMin
 minutesAsleep _ _ = error "bad pattern"
-
-minuteRange :: Int -> Int -> [Int] -> [Int]
-minuteRange cur end acc | cur > 59 = minuteRange 0 end acc
-                        | cur == end = cur : acc
-                        | otherwise = minuteRange (cur + 1) end (cur : acc)
 
 pairs :: [a] -> [(a, a)]
 pairs = fmap (\[a, b] -> (a, b)) . chunksOf 2
