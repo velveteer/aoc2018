@@ -7,3 +7,4 @@ import Advent.Day02 as Days
 import Advent.Day03 as Days
 import Advent.Day04 as Days
 import Advent.Day05 as Days
+import Advent.Day06 as Days
